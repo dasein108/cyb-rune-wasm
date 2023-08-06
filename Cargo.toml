@@ -1,10 +1,10 @@
 [package]
 name = "cyb-rune-wasm"
-version = "0.0.5"
-authors = ["dasein <acidpictures@gmail.com>", "John-John Tedro <udoprog@tedro.se>"]
-edition = "2021"
+version = "0.0.7"
+authors = ["dasein <acidpictures@gmail.com>"]
+edition = "2023"
 rust-version = "1.65"
-description = "[cyb.ai] A WASM module for the Rune Language, an embeddable dynamic programming language for Rust."
+description = "[cyb.ai] A WASM module for the Rune Language with cyber bindings"
 documentation = "https://docs.rs/rune"
 readme = "README.md"
 homepage = "https://github.com/dasein108/cyb-rune-wasm"
@@ -38,6 +38,6 @@ path = "src/lib.rs"
 
 
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1

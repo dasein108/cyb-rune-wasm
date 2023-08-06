@@ -33,6 +33,7 @@ use std::sync::Arc;
 
 use anyhow::Context as _;
 use gloo_utils::format::JsValueSerdeExt;
+use helpers::map_to_rune_value;
 use rune::ast::Spanned;
 use rune::compile::LinkerError;
 use rune::diagnostics::{Diagnostic, FatalDiagnosticKind};
@@ -41,25 +42,29 @@ use rune::runtime::{budget, Value, VmResult};
 use rune::{Context, ContextError, Options};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-
 use serde_json::Value as SerdeValue;
 
 mod cyb;
 mod helpers;
+use js_sys::JSON;
 
-// #[serde(rename_all = "snake_case")]
-// #[rune(item = ::cyb)]
-// #[derive(Deserialize)]
-// pub struct IpfsItemContext {
-//     #[serde(default)]
-//     cid: Option<String>,
+// Next let's define a macro that's like `println!`, only it works for
+// `console.log`. Note that `println!` doesn't actually work on the wasm target
+// because the standard library currently just eats all output. To get
+// `println!`-like behavior in your app you'll likely want a macro like this.
+macro_rules! console_log {
+    ($($t:tt)*) => (cyb::log(&format_args!($($t)*).to_string()))
+}
 
-//     #[serde(default)]
-//     content_type: Option<String>,
-
-//     #[serde(default)]
-//     preview: Option<String>,
-// }
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CompilerParams {
+    read_only: bool,
+    func_name: String,
+    func_params: SerdeValue,
+    execute: bool,
+    config: Config
+}
 
 #[derive(Default, Serialize)]
 struct WasmPosition {
@@ -112,6 +117,7 @@ struct WasmDiagnostic {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WasmCompileResult {
     error: Option<String>,
     diagnostics_output: Option<String>,
@@ -163,11 +169,11 @@ impl WasmCompileResult {
 }
 
 /// Setup a wasm-compatible context.
-fn setup_context(experimental: bool, io: &CaptureIo, params: SerdeValue) -> Result<Context, ContextError> {
+fn setup_context(experimental: bool, io: &CaptureIo, params: SerdeValue, read_only: bool) -> Result<Context, ContextError> {
     let mut context = Context::with_config(false)?;
 
     context.install(rune::modules::capture_io::module(io)?)?;
-    context.install(cyb::module(params)?)?;
+    context.install(cyb::module(params, read_only)?)?;
     context.install(rune_modules::http::module(true)?)?;
     context.install(rune_modules::json::module(true)?)?;
     context.install(rune_modules::toml::module(false)?)?;
@@ -182,17 +188,18 @@ fn setup_context(experimental: bool, io: &CaptureIo, params: SerdeValue) -> Resu
 
 async fn inner_compile(
     input: String,
-    config: JsValue,
     io: &CaptureIo,
     scripts: String,
     params: JsValue,
-    execute_after_compile: bool
+    compiler_params: JsValue
 ) -> Result<WasmCompileResult, anyhow::Error> {
+    // console_log!("compile: {:?}", JSON::stringify(&compiler_params));
+
+    let compiler_params: CompilerParams = JsValueSerdeExt::into_serde(&compiler_params)?;
     let instructions = None;
-    let config: Config = JsValueSerdeExt::into_serde(&config)?;
+    let config = compiler_params.config;
     let params: SerdeValue = JsValueSerdeExt::into_serde(&params)?;
     let budget = config.budget.unwrap_or(1_000_000);
-
     let mut sources = rune::Sources::new();
 
     sources.insert(rune::Source::new("entry", input));
@@ -201,7 +208,7 @@ async fn inner_compile(
         sources.insert(rune::Source::new("entry", scripts));
     }
 
-    let context = setup_context(config.experimental, io, params)?;
+    let context = setup_context(config.experimental, io, params, compiler_params.read_only)?;
 
     let mut options = Options::default();
 
@@ -288,7 +295,7 @@ async fn inner_compile(
             .context("emitting to buffer should never fail")?;
     }
 
-    if !execute_after_compile {
+    if !compiler_params.execute {
         return Ok(WasmCompileResult::output(
             io,
             Value::from(String::from("")),
@@ -327,7 +334,9 @@ async fn inner_compile(
     //     params.push(Value::from(ref_id));
     // }
 
-    let mut execution = match vm.execute(["main"], ()) {
+    let params = map_to_rune_value(&compiler_params.func_params);
+
+    let mut execution = match vm.execute([&compiler_params.func_name], (params,)) {
         Ok(execution) => execution,
         Err(error) => {
             error
@@ -407,11 +416,12 @@ fn diagnostics_output(writer: rune::termcolor::Buffer) -> Option<String> {
     Some(string)
 }
 
+
 #[wasm_bindgen]
-pub async fn compile(input: String, config: JsValue, scripts:  String, params: JsValue, execute_after_compile: bool) -> JsValue {
+pub async fn compile(input: String, scripts: String, params: JsValue, compiler_params: JsValue) -> JsValue {
     let io = CaptureIo::new();
 
-    let result = match inner_compile(input, config, &io, scripts, params, execute_after_compile).await {
+    let result = match inner_compile(input, &io, scripts, params, compiler_params).await {
         Ok(result) => result,
         Err(error) => WasmCompileResult::from_error(&io, error, None, Vec::new(), None),
     };

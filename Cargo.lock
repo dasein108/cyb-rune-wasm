@@ -107,7 +107,7 @@ dependencies = [
 
 [[package]]
 name = "cyb-rune-wasm"
-version = "0.0.5"
+version = "0.0.7"
 dependencies = [
  "anyhow",
  "gloo-utils",
