@@ -33,7 +33,7 @@ use std::sync::Arc;
 
 use anyhow::Context as _;
 use gloo_utils::format::JsValueSerdeExt;
-use helpers::map_to_rune_value;
+use helpers::{map_to_rune_value,map_params_to_vec};
 use rune::ast::Spanned;
 use rune::compile::LinkerError;
 use rune::diagnostics::{Diagnostic, FatalDiagnosticKind};
@@ -46,15 +46,14 @@ use serde_json::Value as SerdeValue;
 
 mod cyb;
 mod helpers;
-use js_sys::JSON;
 
 // Next let's define a macro that's like `println!`, only it works for
 // `console.log`. Note that `println!` doesn't actually work on the wasm target
 // because the standard library currently just eats all output. To get
 // `println!`-like behavior in your app you'll likely want a macro like this.
-macro_rules! console_log {
-    ($($t:tt)*) => (cyb::log(&format_args!($($t)*).to_string()))
-}
+// macro_rules! console_log {
+//     ($($t:tt)*) => (cyb::log(&format_args!($($t)*).to_string()))
+// }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -334,9 +333,9 @@ async fn inner_compile(
     //     params.push(Value::from(ref_id));
     // }
 
-    let params = map_to_rune_value(&compiler_params.func_params);
+    let params_vec = map_params_to_vec(&compiler_params.func_params);
 
-    let mut execution = match vm.execute([&compiler_params.func_name], (params,)) {
+    let mut execution = match vm.execute([&compiler_params.func_name], params_vec) {
         Ok(execution) => execution,
         Err(error) => {
             error

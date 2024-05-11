@@ -27,6 +27,18 @@ pub fn map_to_rune_value(serde_value: &SerdeValue) -> VmValue {
     }
 }
 
+pub fn map_params_to_vec(serde_value: &SerdeValue) -> Vec<VmValue> {
+    match serde_value {
+        SerdeValue::Array(a) => {
+            let rune_array: Vec<VmValue> = a.iter().map(|v| map_to_rune_value(v)).collect();
+            Vec::from(rune_array)
+        },
+        _ => {
+            Vec::from([map_to_rune_value(serde_value)])
+        },
+    }
+}
+
 pub async fn execute_promise<F>(f: F) -> VmResult<VmValue>
 where
     F: Fn() -> js_sys::Promise,
