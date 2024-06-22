@@ -1,6 +1,6 @@
 [package]
 name = "cyb-rune-wasm"
-version = "0.0.8"
+version = "0.0.83"
 authors = ["dasein <acidpictures@gmail.com>"]
 edition = "2021"
 rust-version = "1.65"
@@ -15,22 +15,27 @@ categories = ["parser-implementations"]
 
 
 [dependencies]
-rune = { version = "=0.12.3",  git = "https://github.com/rune-rs/rune.git", branch = "main", package = "rune", features = ["capture-io"] }
-rune-macros = { version = "=0.12.3",  git = "https://github.com/rune-rs/rune.git", branch = "main", package = "rune-macros" }
-rune-modules = { version = "=0.12.3",  git = "https://github.com/rune-rs/rune.git", branch = "main", package = "rune-modules", features = ["core", "test", "json", "toml", "rand", "experiments", "http"] }
+rune = { version = "=0.14.0",  git = "https://github.com/rune-rs/rune.git", branch = "main", package = "rune", features = ["capture-io"] }
+rune-macros = { version = "=0.14.0",  git = "https://github.com/rune-rs/rune.git", branch = "main", package = "rune-macros" }
+rune-modules = { version = "=0.14.0",  git = "https://github.com/rune-rs/rune.git", branch = "main", package = "rune-modules", features = ["core", "test", "json", "toml", "rand", "experiments", "http", "time"] }
+
+# rune = { version = "=0.14", features = ["capture-io"] }
+# rune-macros = { version = "=0.14" }
+# rune-modules = { version = "=0.14",  features = ["core", "test", "json", "toml", "rand", "experiments", "http", "time"] }
 
 serde = { version = "1.0.163", features = ["derive"] }
-wasm-bindgen = { version = "0.2.85", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.87", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.35"
-serde-wasm-bindgen = "0.4"
 serde_json = "1.0"
 js-sys = "0.3.62"
 anyhow = "1.0.71"
 gloo-utils = "0.1.6"
+types = "0.1.2"
+console_error_panic_hook = "0.1"
 
 [dependencies.web-sys]
-version = "0.3.62"
-features = ["Request", "Response", "Window", "RequestInit", "RequestMode"]
+version = "0.3"
+features = ["Request", "Response", "Window", "RequestInit", "RequestMode", "console"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -38,6 +43,8 @@ path = "src/lib.rs"
 
 
 [profile.release]
-opt-level = "z"
+# debug = true
+opt-level = 0
+# opt-level = "z"
 lto = true
 codegen-units = 1
