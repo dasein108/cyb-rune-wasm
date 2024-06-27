@@ -231,7 +231,6 @@ async fn inner_compile(
 
     let mut d = rune::Diagnostics::new();
     let mut diagnostics = Vec::new();
-    console_log!("rune prepare");
 
     let result = rune::prepare(&mut sources)
         .with_context(&context)
@@ -239,7 +238,6 @@ async fn inner_compile(
         .with_options(&options)
         .build();
 
-    console_log!("before result");
     for diagnostic in d.diagnostics() {
         match diagnostic {
             Diagnostic::Fatal(error) => {
@@ -323,7 +321,6 @@ async fn inner_compile(
         ))
     }
 
-    console_log!("before unit");
     let unit = match result {
         Ok(unit) => Arc::new(unit),
         Err(error) => {
@@ -347,11 +344,9 @@ async fn inner_compile(
     };
 
     let mut vm = rune::Vm::new(Arc::new(context.runtime()?), unit);
-    console_log!("ep.func_params {:?}", ep.func_params);
     let args: Vec<Value> = to_vec(&ep.func_params)?;
     let main_name = ep.func_name.as_str();
-    console_log!("main_name {}", main_name);
-    console_log!("args rune {:?}", args);
+
     let mut execution = match vm.execute([main_name], args) {
         Ok(execution) => execution,
         Err(error) => {

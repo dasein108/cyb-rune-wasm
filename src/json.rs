@@ -6,21 +6,11 @@ use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen::prelude::*;
 use gloo_utils::format::JsValueSerdeExt;
 
-
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     pub fn log(s: &str);
 }
-
-macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
-
-// use gloo_utils::format::JsValueSerdeExt;
-// use wasm_bindgen::prelude::*;
-// use types::Uid;
 
 #[allow(clippy::module_name_repetitions)]
 pub trait ToJson {
@@ -144,12 +134,15 @@ where
     let js_value = JsFuture::from(f()).await;
     match js_value {
         Ok(js_value) => {
-            // let v: JsonValue = serde_wasm_bindgen::from_value(js_value).unwrap();
-            console_log!("execute_promise {:?}", js_value);
             let js_value: JsonValue = JsValueSerdeExt::into_serde(&js_value).unwrap();
-            console_log!("execute_promise {:?} js_value", js_value);
              VmResult::Ok(js_value.to_rune().unwrap())
         }
-        Err(_) => VmResult::panic("cyb-rune: undefined behaivior"),
+        Err(e) => VmResult::panic(format!("cyb-runtime error: {:?}", e)),
     }
+}
+
+pub fn rune_value_to_js(value: RuneValue) -> JsValue
+{
+    let json_value = value.to_json().unwrap();
+    <JsValue as JsValueSerdeExt>::from_serde(&json_value).unwrap()
 }

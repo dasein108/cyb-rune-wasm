@@ -6,9 +6,8 @@ help:
 
 .PHONY: build
 build:
-	wasm-pack build --dev --target web
-
-	# wasm-pack build --release --target web
+	# wasm-pack build --dev --target web
+	wasm-pack build --release --target web
 
 .PHONY: publish
 publish:

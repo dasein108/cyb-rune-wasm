@@ -124,7 +124,7 @@ checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 
 [[package]]
 name = "cyb-rune-wasm"
-version = "0.0.83"
+version = "0.0.84"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
