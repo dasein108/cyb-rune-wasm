@@ -1,6 +1,6 @@
 [package]
 name = "cyb-rune-wasm"
-version = "0.0.84"
+version = "0.0.842"
 authors = ["dasein <acidpictures@gmail.com>"]
 edition = "2021"
 rust-version = "1.65"

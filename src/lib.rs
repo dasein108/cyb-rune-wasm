@@ -87,7 +87,7 @@ struct EntryPointParams {
     params: JsonValue,
     execute: bool,
     input: String,
-    script: String
+    scripts: Vec<String>
 }
 
 #[derive(Deserialize)]
@@ -215,9 +215,8 @@ async fn inner_compile(
     let mut sources = rune::Sources::new();
 
     sources.insert(source)?;
-
-    if ep.script.len() > 0 {
-        let source = rune::Source::new("entry", ep.script)?;
+    for script in ep.scripts {
+        let source = rune::Source::new("entry", script)?;
         sources.insert(source)?;
     }
 

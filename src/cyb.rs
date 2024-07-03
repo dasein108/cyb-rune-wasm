@@ -24,7 +24,7 @@ extern "C" {
     fn jsGetIpfsTextContent(cid: &str)-> Promise;
     fn jsAddContenToIpfs(content: &str)-> Promise;
     fn jsEvalScriptFromIpfs(cid: &str, func_name: &str, params: &JsValue)-> Promise;
-    fn jsPromptToOpenAI(prompt: &str, api_key: &str, params: &JsValue, ref_id: &JsValue)-> Promise;
+    fn jsOpenAICompletions(messages: &JsValue, api_key: &str, params: &JsValue, ref_id: &JsValue)-> Promise;
     fn jsSearchByEmbedding(text: &str, count: usize)-> Promise;
     fn jsCyberLinksFrom(cid: &str)-> Promise;
     fn jsCyberLinksTo(cid: &str)-> Promise;
@@ -96,15 +96,16 @@ pub async fn add_content_to_ipfs(content: Ref<str>) ->  VmResult<VmValue> {
 //     execute_promise(|| jsPromptToOpenAI(&prompt, &api_key, &js_value, &closure)).await
 // }
 
-pub async fn open_ai_prompt(
-    prompt: Ref<str>,
+pub async fn open_ai_completions(
+    messages: VmValue,
     api_key: Ref<str>,
     params: VmValue,
     ref_id: JsValue
 ) -> VmResult<VmValue> {
-    let js_value = rune_value_to_js(params);
+    let params = rune_value_to_js(params);
+    let messages = rune_value_to_js(messages);
 
-    execute_promise(|| jsPromptToOpenAI(&prompt, &api_key, &js_value, &ref_id)).await
+    execute_promise(|| jsOpenAICompletions(&messages, &api_key, &params, &ref_id)).await
 }
 
 pub async fn get_cyberlinks_from_cid(cid: Ref<str>) ->  VmResult<VmValue> {
@@ -144,13 +145,13 @@ pub fn module(params: JsonValue, read_only: bool) -> Result<Module, ContextError
 
     module.function(["eval_script_from_ipfs"], eval_script_from_ipfs).build()?;
 
-    module.function("open_ai_prompt", move |prompt: Ref<str>, api_key: Ref<str>, params: VmValue| {
+    module.function("open_ai_completions", move |messages: VmValue, api_key: Ref<str>, params: VmValue| {
         // let cloned_ref_id = js_ref_id.clone();
 
         let ref_id = <JsValue as JsValueSerdeExt>::from_serde(&js_ref_id).unwrap();
 
         async move {
-            open_ai_prompt(prompt, api_key, params, ref_id).await
+            open_ai_completions(messages, api_key, params, ref_id).await
         }
     }).build()?;
 
