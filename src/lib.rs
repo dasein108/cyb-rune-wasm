@@ -39,6 +39,7 @@ use rune::diagnostics::{Diagnostic, FatalDiagnosticKind};
 use rune::modules::capture_io::CaptureIo;
 use rune::runtime::{budget, Value, VmResult};
 use rune::{Context, ContextError, Options};
+use rune::alloc::HashMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -87,7 +88,7 @@ struct EntryPointParams {
     params: JsonValue,
     execute: bool,
     input: String,
-    scripts: Vec<String>
+    scripts: HashMap<String, String>
 }
 
 #[derive(Deserialize)]
@@ -123,6 +124,7 @@ struct WasmDiagnostic {
     start: WasmPosition,
     end: WasmPosition,
     message: String,
+    name: String
 }
 
 #[derive(Serialize, Debug)]
@@ -210,13 +212,13 @@ async fn inner_compile(
     let ep: EntryPointParams = JsValueSerdeExt::into_serde(&entry_point)?;
 
     let budget = config.budget.unwrap_or(1_000_000);
-    let source = rune::Source::new("entry", ep.input)?;
+    let source = rune::Source::new("main_entry", ep.input)?;
 
     let mut sources = rune::Sources::new();
 
     sources.insert(source)?;
-    for script in ep.scripts {
-        let source = rune::Source::new("entry", script)?;
+    for entry in ep.scripts {
+        let source = rune::Source::new(entry.0, entry.1)?;
         sources.insert(source)?;
     }
 
@@ -257,6 +259,7 @@ async fn inner_compile(
                                 start,
                                 end,
                                 message: error.to_string(),
+                                name: source.name().to_string()
                             });
                         }
                         FatalDiagnosticKind::LinkError(error) => match error {
@@ -274,6 +277,7 @@ async fn inner_compile(
                                         start,
                                         end,
                                         message: format!("missing function (hash: {})", hash),
+                                        name: source.name().to_string()
                                     });
                                 }
                             }
@@ -296,6 +300,7 @@ async fn inner_compile(
                         start,
                         end,
                         message: warning.to_string(),
+                        name: source.name().to_string()
                     });
                 }
             }
@@ -391,6 +396,7 @@ async fn inner_compile(
                             start,
                             end,
                             message: error.to_string(),
+                            name: source.name().to_string()
                         });
                     }
                 }
